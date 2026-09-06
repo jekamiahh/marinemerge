@@ -1,0 +1,1862 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Icon Merge</title>
+
+  <style>
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background: #f4f4f4;
+      font-family: Arial, sans-serif;
+    }
+
+    .game {
+      text-align: center;
+    }
+
+    .boards {
+      display: flex;
+      gap: 28px;
+      align-items: flex-start;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .board-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .board {
+      display: grid;
+      gap: 8px;
+      padding: 8px;
+      background: #ccc;
+      border-radius: 8px;
+    }
+
+    .board-4x4 {
+      grid-template-columns: repeat(4, 88px);
+      grid-template-rows: repeat(4, 88px);
+    }
+
+    .board-3x3 {
+      grid-template-columns: repeat(3, 88px);
+      grid-template-rows: repeat(3, 88px);
+    }
+
+    .board-1x1 {
+      grid-template-columns: 88px;
+      grid-template-rows: 88px;
+    }
+
+    .mecep-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 150px;
+    }
+
+    .mecep-label {
+      margin-bottom: 8px;
+      font-size: 16px;
+      font-weight: bold;
+      letter-spacing: 0.08em;
+    }
+
+    .mecep-control {
+      width: 150px;
+      margin-top: 18px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .mecep-button {
+      width: 150px;
+      height: 150px;
+    }
+
+    .cell {
+      width: 88px;
+      height: 88px;
+      background: #e8e8e8;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .tile {
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 6px;
+      background: #fff;
+      cursor: grab;
+      user-select: none;
+    }
+
+    .tile:active { cursor: grabbing; }
+
+    .tile img {
+      max-width: 80%;
+      max-height: 80%;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .cell.drag-over {
+      outline: 3px solid #777;
+    }
+
+    .main-spawns {
+      display: flex;
+      gap: 22px;
+      justify-content: center;
+      align-items: flex-start;
+      margin-top: 18px;
+      flex-wrap: wrap;
+      width: 100%;
+    }
+
+    .spawn-control,
+    .academy-spawn-control {
+      width: 150px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .academy-spawn-control {
+      margin-top: 18px;
+    }
+
+    .image-spawn-button {
+      width: 150px;
+      height: 150px;
+      padding: 10px;
+      border: none;
+      border-radius: 12px;
+      background: #222;
+      color: white;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+    }
+
+    .image-spawn-button img {
+      width: 108px;
+      height: 108px;
+      object-fit: contain;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    .image-spawn-button span {
+      font-size: 18px;
+      font-weight: bold;
+      line-height: 1.1;
+      text-align: center;
+    }
+
+    .image-spawn-button .small-label {
+      font-size: 13px;
+      font-weight: 600;
+      line-height: 1.1;
+    }
+
+    button:hover:not(:disabled) {
+      background: #444;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .cooldown-track {
+      width: 100%;
+      height: 6px;
+      margin-top: 7px;
+      background: #d2d2d2;
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .cooldown-bar {
+      width: 0%;
+      height: 100%;
+      background: #222;
+      border-radius: inherit;
+    }
+
+    .countdown-text {
+      min-height: 18px;
+      margin-top: 4px;
+      font-size: 13px;
+      color: #555;
+    }
+
+    .popup {
+      position: fixed;
+      left: 50%;
+      top: 24px;
+      transform: translateX(-50%) translateY(-20px);
+      padding: 12px 20px;
+      border-radius: 8px;
+      background: #222;
+      color: white;
+      font-weight: bold;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+
+    .popup.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .promotion-popup {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      max-width: 360px;
+    }
+
+    .promotion-popup img {
+      width: 42px;
+      height: 42px;
+      object-fit: contain;
+      flex: 0 0 auto;
+    }
+
+    .mecep-error {
+      position: fixed;
+      left: 50%;
+      bottom: 24px;
+      transform: translateX(-50%) translateY(14px);
+      padding: 8px 12px;
+      border-radius: 6px;
+      background: #b00020;
+      color: white;
+      font-size: 13px;
+      font-weight: bold;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.18s ease, transform 0.18s ease;
+      z-index: 10;
+    }
+
+    .mecep-error.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+
+    .promotion-warrant {
+      position: fixed;
+      right: 22px;
+      bottom: 22px;
+      width: min(520px, calc(100vw - 44px));
+      padding: 16px;
+      border: 2px solid #222;
+      border-radius: 12px;
+      background: #fff;
+      color: #222;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+      opacity: 0;
+      transform: translateY(18px);
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+      z-index: 20;
+      text-align: left;
+    }
+
+    .promotion-warrant.show {
+      opacity: 1;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    .promotion-warrant-close {
+      position: absolute;
+      top: 8px;
+      right: 10px;
+      width: 32px;
+      height: 32px;
+      border: none;
+      border-radius: 6px;
+      background: transparent;
+      color: #555;
+      font-size: 24px;
+      line-height: 1;
+      cursor: pointer;
+    }
+
+    .promotion-warrant-close:hover {
+      background: #eee;
+    }
+
+    .promotion-warrant-header {
+      margin-right: 40px;
+      margin-bottom: 12px;
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+    }
+
+    .promotion-warrant-body {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .promotion-warrant-insignia-wrap {
+      width: 96px;
+      min-width: 96px;
+      height: 96px;
+      display: grid;
+      place-items: center;
+      border-radius: 10px;
+      background: #f1f1f1;
+    }
+
+    .promotion-warrant-insignia {
+      max-width: 78px;
+      max-height: 78px;
+      object-fit: contain;
+    }
+
+    .promotion-warrant-rank {
+      margin-bottom: 6px;
+      font-size: 20px;
+      font-weight: 800;
+    }
+
+    .promotion-warrant-text {
+      font-size: 14px;
+      line-height: 1.45;
+    }
+
+    @media (max-width: 600px) {
+      .promotion-warrant {
+        right: 12px;
+        bottom: 12px;
+        width: calc(100vw - 24px);
+      }
+
+      .promotion-warrant-body {
+        align-items: flex-start;
+      }
+
+      .promotion-warrant-insignia-wrap {
+        width: 76px;
+        min-width: 76px;
+        height: 76px;
+      }
+
+      .promotion-warrant-insignia {
+        max-width: 62px;
+        max-height: 62px;
+      }
+    }
+  
+    .game-title { width:100%; margin:18px auto 24px; text-align:center; font-size:28px; font-weight:800; letter-spacing:.18em; line-height:1.2; }
+    .board-heading { width:100%; margin:0 0 10px; text-align:center; font-size:12px; font-weight:700; letter-spacing:.14em; line-height:1.2; }
+    @media (max-width:600px) { .game-title {font-size:23px;letter-spacing:.13em;} .board-heading {font-size:11px;letter-spacing:.1em;} }
+
+  
+    .achievements-button { position:fixed; top:18px; right:20px; z-index:30; width:44px; height:44px; border:1px solid #c8c8c8; border-radius:10px; background:#fff; font-size:22px; cursor:pointer; box-shadow:0 4px 14px rgba(0,0,0,.08); }
+    .achievements-button:hover { background:#f4f4f4; }
+    .achievements-backdrop { position:fixed; inset:0; background:rgba(0,0,0,.16); opacity:0; pointer-events:none; transition:opacity .2s ease; z-index:39; }
+    .achievements-backdrop.show { opacity:1; pointer-events:auto; }
+    .achievements-panel { position:fixed; top:0; right:0; width:min(390px,92vw); height:100vh; background:#fff; z-index:40; transform:translateX(102%); transition:transform .22s ease; box-shadow:-12px 0 32px rgba(0,0,0,.15); display:flex; flex-direction:column; }
+    .achievements-panel.show { transform:translateX(0); }
+    .achievements-header { display:flex; align-items:center; justify-content:space-between; padding:20px 20px 14px; border-bottom:1px solid #e2e2e2; }
+    .achievements-title { font-size:16px; font-weight:800; letter-spacing:.13em; }
+    .achievements-close { border:0; background:transparent; font-size:26px; cursor:pointer; color:#555; }
+    .achievements-subtitle { padding:12px 20px 4px; font-size:12px; color:#777; }
+    .achievements-list { overflow:auto; padding:10px 16px 28px; display:grid; gap:9px; }
+    .achievement { display:flex; align-items:center; gap:12px; padding:10px; border:1px solid #ddd; border-radius:10px; background:#fafafa; }
+    .achievement img { width:48px; height:48px; object-fit:contain; }
+    .achievement.locked img { filter:grayscale(1); opacity:.18; }
+    .achievement.locked { color:#999; background:#f2f2f2; }
+    .achievement.unlocked { background:#fff; border-color:#aaa; }
+    .achievement-name { font-size:13px; font-weight:750; }
+    .achievement-status { margin-top:3px; font-size:11px; letter-spacing:.08em; text-transform:uppercase; }
+    .achievement-description { margin-top:3px; font-size:11px; line-height:1.35; color:#666; }
+    .achievement.locked .achievement-description { color:#999; }
+    @media(max-width:600px){ .achievements-button{top:12px;right:12px;} }
+
+    .music-button {
+      position:fixed;
+      top:18px;
+      right:74px;
+      z-index:30;
+      width:44px;
+      height:44px;
+      border:1px solid #c8c8c8;
+      border-radius:10px;
+      background:#fff;
+      font-size:20px;
+      cursor:pointer;
+      box-shadow:0 4px 14px rgba(0,0,0,.08);
+    }
+    .music-button:hover { background:#f4f4f4; }
+
+    .music-panel {
+      position:fixed;
+      top:0;
+      right:0;
+      width:min(390px,92vw);
+      height:100vh;
+      background:#fff;
+      z-index:40;
+      transform:translateX(102%);
+      transition:transform .22s ease;
+      box-shadow:-12px 0 32px rgba(0,0,0,.15);
+      display:flex;
+      flex-direction:column;
+    }
+    .music-panel.show { transform:translateX(0); }
+    .music-list {
+      overflow:auto;
+      padding:10px 16px 24px;
+      display:grid;
+      gap:9px;
+    }
+    .music-track {
+      width:100%;
+      display:flex;
+      align-items:center;
+      gap:12px;
+      padding:11px 12px;
+      border:1px solid #ddd;
+      border-radius:10px;
+      background:#fafafa;
+      text-align:left;
+      cursor:pointer;
+      color:#222;
+    }
+    .music-track:hover { background:#f2f2f2; }
+    .music-track.active { background:#fff; border-color:#888; }
+    .music-track-number {
+      width:24px;
+      color:#888;
+      font-size:11px;
+      font-weight:700;
+      letter-spacing:.08em;
+    }
+    .music-track-copy { min-width:0; flex:1; }
+    .music-track-title {
+      font-size:13px;
+      font-weight:750;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .music-track-status {
+      margin-top:3px;
+      font-size:10px;
+      letter-spacing:.08em;
+      text-transform:uppercase;
+      color:#777;
+    }
+    .music-volume {
+      padding:14px 20px 20px;
+      border-top:1px solid #e2e2e2;
+      display:grid;
+      grid-template-columns:auto 1fr auto;
+      align-items:center;
+      gap:10px;
+      font-size:11px;
+      letter-spacing:.08em;
+    }
+    .music-volume input { width:100%; }
+
+    .mini-player {
+      position:fixed;
+      left:18px;
+      bottom:18px;
+      z-index:28;
+      width:min(310px, calc(100vw - 36px));
+      display:flex;
+      align-items:center;
+      gap:8px;
+      padding:9px 10px;
+      border:1px solid #c8c8c8;
+      border-radius:11px;
+      background:rgba(255,255,255,.96);
+      box-shadow:0 4px 14px rgba(0,0,0,.08);
+      backdrop-filter:blur(6px);
+    }
+    .mini-player button {
+      width:30px;
+      height:30px;
+      flex:0 0 30px;
+      display:grid;
+      place-items:center;
+      border:0;
+      border-radius:7px;
+      background:transparent;
+      cursor:pointer;
+      color:#222;
+      font-size:14px;
+    }
+    .mini-player button:hover { background:#eee; }
+    .mini-player-info {
+      min-width:0;
+      flex:1;
+      padding-left:2px;
+    }
+    .mini-player-label {
+      font-size:9px;
+      font-weight:700;
+      letter-spacing:.12em;
+      color:#888;
+    }
+    .mini-player-title {
+      margin-top:2px;
+      font-size:12px;
+      font-weight:700;
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+
+    @media(max-width:600px){
+      .music-button{top:12px;right:64px;}
+      .mini-player{left:12px;bottom:12px;width:min(300px,calc(100vw - 24px));}
+    }
+
+
+  
+    .training-weeks-readout {
+      margin:-8px auto 18px;
+      text-align:center;
+      font-size:10px;
+      letter-spacing:.12em;
+      color:#777;
+      text-transform:uppercase;
+    }
+    .training-weeks-readout strong { color:#222; font-weight:800; }
+
+  </style>
+</head>
+
+<body>
+    <header class="game-title">MARINE MERGE</header>
+    <div class="training-weeks-readout">CUMULATIVE TRAINING: <strong id="trainingWeeksCounter">0 WEEKS</strong></div>
+  
+  <button id="musicButton" class="music-button" type="button" aria-label="Open Drum and Bugle Corps" title="Drum and Bugle Corps">♫</button>
+  <button id="achievementsButton" class="achievements-button" type="button" aria-label="Open achievements" title="Achievements">★</button>
+  <div id="achievementsBackdrop" class="achievements-backdrop"></div>
+  <aside id="achievementsPanel" class="achievements-panel" aria-hidden="true">
+    <div class="achievements-header"><div class="achievements-title">ACHIEVEMENTS</div><button id="achievementsClose" class="achievements-close" type="button" aria-label="Close achievements">×</button></div>
+    <div class="achievements-subtitle">RANKS EARNED</div>
+    <div id="achievementsList" class="achievements-list"></div>
+  </aside>
+
+  <aside id="musicPanel" class="music-panel" aria-hidden="true">
+    <div class="achievements-header">
+      <div class="achievements-title">DRUM AND BUGLE CORPS</div>
+      <button id="musicClose" class="achievements-close" type="button" aria-label="Close Drum and Bugle Corps">×</button>
+    </div>
+    <div class="achievements-subtitle">SELECT TRACK</div>
+    <div id="musicList" class="music-list"></div>
+    <div class="music-volume">
+      <span>VOLUME</span>
+      <input id="musicVolume" type="range" min="0" max="1" value="0.45" step="0.01" aria-label="Music volume">
+      <span id="musicVolumeValue">45%</span>
+    </div>
+  </aside>
+
+  <div id="miniPlayer" class="mini-player">
+    <button id="musicPrev" type="button" aria-label="Previous track" title="Previous">◀</button>
+    <button id="musicPlayPause" type="button" aria-label="Play music" title="Play/Pause">▶</button>
+    <button id="musicNext" type="button" aria-label="Next track" title="Next">▶|</button>
+    <div class="mini-player-info">
+      <div class="mini-player-label">IN CADENCE</div>
+      <div id="miniPlayerTitle" class="mini-player-title">Marines' Hymn (1867)</div>
+    </div>
+  </div>
+
+  <audio id="backgroundMusic" preload="auto" autoplay></audio>
+
+  <div class="game">
+    <div class="boards">
+      <div class="mecep-section">
+        <div class="mecep-label">MECEP</div>
+        <div id="mecepBoard" class="board board-1x1" data-board="mecep"></div>
+
+        <div class="mecep-control">
+          <button id="mecepButton" class="image-spawn-button mecep-button" type="button" aria-label="MECEP conversion">
+            <img src="icons/MECEP.webp" alt="MECEP">
+            <span class="small-label">MECEP</span>
+          </button>
+          <div class="cooldown-track" aria-hidden="true">
+            <div id="mecepCooldownBar" class="cooldown-bar"></div>
+          </div>
+          <div id="mecepCountdown" class="countdown-text">AWAITING ORDERS</div>
+        </div>
+      </div>
+
+      <div class="mecep-section">
+        <div class="mecep-label">WOBC</div>
+        <div id="wobcBoard" class="board board-1x1" data-board="wobc"></div>
+
+        <div class="mecep-control">
+          <button id="wobcButton" class="image-spawn-button mecep-button" type="button" aria-label="WOBC conversion">
+            <img src="icons/WOBC.png" alt="WOBC">
+            <span class="small-label">WOBC</span>
+          </button>
+          <div class="cooldown-track" aria-hidden="true">
+            <div id="wobcCooldownBar" class="cooldown-bar"></div>
+          </div>
+          <div id="wobcCountdown" class="countdown-text">AWAITING ORDERS</div>
+        </div>
+      </div>
+
+      <div class="board-section">
+        <div class="board-heading">PERMANENT DUTY STATION</div>
+        <div id="board" class="board board-4x4" data-board="main"></div>
+
+        <div class="main-spawns">
+          <div class="spawn-control">
+            <button class="mainSpawnButton image-spawn-button" aria-label="MCRD San Diego BMT">
+              <img src="icons/mcrd_san_diego.png" alt="MCRD San Diego">
+              <span>BMT</span>
+            </button>
+            <div class="cooldown-track" aria-hidden="true">
+              <div class="cooldown-bar"></div>
+            </div>
+            <div class="countdown-text">AWAITING ORDERS</div>
+          </div>
+
+          <div class="spawn-control">
+            <button class="mainSpawnButton image-spawn-button" aria-label="MCRD Parris Island BMT">
+              <img src="icons/mcrd_parris_island.png" alt="MCRD Parris Island">
+              <span>BMT</span>
+            </button>
+            <div class="cooldown-track" aria-hidden="true">
+              <div class="cooldown-bar"></div>
+            </div>
+            <div class="countdown-text">AWAITING ORDERS</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="board-section">
+        <div class="board-heading">NAVAL ACADEMY</div>
+        <div id="secondaryBoard" class="board board-3x3" data-board="secondary"></div>
+
+        <div class="academy-spawn-control">
+          <button id="academySpawnButton" class="image-spawn-button" aria-label="USNA Plebe Summer">
+            <img src="icons/usna.webp" alt="United States Naval Academy">
+            <span class="small-label">Plebe Summer</span>
+          </button>
+          <div class="cooldown-track" aria-hidden="true">
+            <div class="cooldown-bar"></div>
+          </div>
+          <div id="academyCountdown" class="countdown-text">AWAITING ORDERS</div>
+        </div>
+      </div>
+    </div>
+
+    <div id="promotionPopup" class="popup promotion-popup">
+      <img src="icons/merit.png" alt="Company Honor Graduate">
+      <span>Your recruit was Company Honor Graduate!</span>
+    </div>
+
+    <div id="recyclePopup" class="popup recycle-popup">
+      <span>Your recruit did not qualify and was recycled.</span>
+    </div>
+
+    <div id="mecepError" class="mecep-error">Must be at least a Corporal (E-4)!</div>
+
+    <aside id="promotionWarrant" class="promotion-warrant" aria-live="polite" aria-hidden="true">
+      <button id="promotionWarrantClose" class="promotion-warrant-close" type="button" aria-label="Close promotion warrant">×</button>
+      <div class="promotion-warrant-header">PROMOTION WARRANT</div>
+      <div class="promotion-warrant-body">
+        <div class="promotion-warrant-insignia-wrap">
+          <img id="promotionWarrantIcon" class="promotion-warrant-insignia" src="" alt="">
+        </div>
+        <div class="promotion-warrant-copy">
+          <div id="promotionWarrantRank" class="promotion-warrant-rank"></div>
+          <div id="promotionWarrantText" class="promotion-warrant-text"></div>
+        </div>
+      </div>
+    </aside>
+
+    <aside id="officerPromotion" class="promotion-warrant" aria-live="polite" aria-hidden="true">
+      <button id="officerPromotionClose" class="promotion-warrant-close" type="button" aria-label="Close officer promotion">×</button>
+      <div class="promotion-warrant-header">OFFICER PROMOTION (MMPB-10)</div>
+      <div class="promotion-warrant-body">
+        <div class="promotion-warrant-insignia-wrap">
+          <img id="officerPromotionIcon" class="promotion-warrant-insignia" src="" alt="">
+        </div>
+        <div class="promotion-warrant-copy">
+          <div id="officerPromotionRank" class="promotion-warrant-rank"></div>
+          <div id="officerPromotionText" class="promotion-warrant-text"></div>
+        </div>
+      </div>
+    </aside>
+
+    <aside id="warrantPromotion" class="promotion-warrant" aria-live="polite" aria-hidden="true">
+      <button id="warrantPromotionClose" class="promotion-warrant-close" type="button" aria-label="Close warrant officer promotion">×</button>
+      <div class="promotion-warrant-header">WARRANT OFFICER PROMOTION (MMPB-10)</div>
+      <div class="promotion-warrant-body">
+        <div class="promotion-warrant-insignia-wrap">
+          <img id="warrantPromotionIcon" class="promotion-warrant-insignia" src="" alt="">
+        </div>
+        <div class="promotion-warrant-copy">
+          <div id="warrantPromotionRank" class="promotion-warrant-rank"></div>
+          <div id="warrantPromotionText" class="promotion-warrant-text"></div>
+        </div>
+      </div>
+    </aside>
+
+    <aside id="achievementUnlockPopup" class="promotion-warrant" aria-live="polite" aria-hidden="true">
+      <button id="achievementUnlockClose" class="promotion-warrant-close" type="button" aria-label="Close achievement unlock">×</button>
+      <div class="promotion-warrant-header">ACHIEVEMENT UNLOCKED</div>
+      <div class="promotion-warrant-body">
+        <div class="promotion-warrant-insignia-wrap">
+          <img id="achievementUnlockIcon" class="promotion-warrant-insignia" src="" alt="">
+        </div>
+        <div class="promotion-warrant-copy">
+          <div id="achievementUnlockName" class="promotion-warrant-rank"></div>
+          <div id="achievementUnlockText" class="promotion-warrant-text"></div>
+        </div>
+      </div>
+    </aside>
+  </div>
+
+  <script>
+    const mecepBoard = document.getElementById("mecepBoard");
+    const wobcBoard = document.getElementById("wobcBoard");
+    const mainBoard = document.getElementById("board");
+    const secondaryBoard = document.getElementById("secondaryBoard");
+    const mainSpawnButtons = [...document.querySelectorAll(".mainSpawnButton")];
+    const academySpawnButton = document.getElementById("academySpawnButton");
+    const academyCountdown = document.getElementById("academyCountdown");
+    const mecepButton = document.getElementById("mecepButton");
+    const mecepCountdown = document.getElementById("mecepCountdown");
+    const mecepCooldownBar = document.getElementById("mecepCooldownBar");
+    const wobcButton = document.getElementById("wobcButton");
+    const wobcCountdown = document.getElementById("wobcCountdown");
+    const wobcCooldownBar = document.getElementById("wobcCooldownBar");
+    const promotionPopup = document.getElementById("promotionPopup");
+    const recyclePopup = document.getElementById("recyclePopup");
+    const mecepError = document.getElementById("mecepError");
+
+    const promotionWarrant = document.getElementById("promotionWarrant");
+    const promotionWarrantClose = document.getElementById("promotionWarrantClose");
+    const promotionWarrantIcon = document.getElementById("promotionWarrantIcon");
+    const promotionWarrantRank = document.getElementById("promotionWarrantRank");
+    const promotionWarrantText = document.getElementById("promotionWarrantText");
+    const officerPromotion = document.getElementById("officerPromotion");
+    const officerPromotionClose = document.getElementById("officerPromotionClose");
+    const officerPromotionIcon = document.getElementById("officerPromotionIcon");
+    const officerPromotionRank = document.getElementById("officerPromotionRank");
+    const officerPromotionText = document.getElementById("officerPromotionText");
+    const warrantPromotion = document.getElementById("warrantPromotion");
+    const warrantPromotionClose = document.getElementById("warrantPromotionClose");
+    const warrantPromotionIcon = document.getElementById("warrantPromotionIcon");
+    const warrantPromotionRank = document.getElementById("warrantPromotionRank");
+    const warrantPromotionText = document.getElementById("warrantPromotionText");
+    const achievementUnlockPopup = document.getElementById("achievementUnlockPopup");
+    const achievementUnlockClose = document.getElementById("achievementUnlockClose");
+    const achievementUnlockIcon = document.getElementById("achievementUnlockIcon");
+    const achievementUnlockName = document.getElementById("achievementUnlockName");
+    const achievementUnlockText = document.getElementById("achievementUnlockText");
+    const achievementsButton = document.getElementById("achievementsButton");
+    const achievementsPanel = document.getElementById("achievementsPanel");
+    const achievementsClose = document.getElementById("achievementsClose");
+    const achievementsBackdrop = document.getElementById("achievementsBackdrop");
+    const achievementsList = document.getElementById("achievementsList");
+    const musicButton = document.getElementById("musicButton");
+    const musicPanel = document.getElementById("musicPanel");
+    const musicClose = document.getElementById("musicClose");
+    const musicList = document.getElementById("musicList");
+    const backgroundMusic = document.getElementById("backgroundMusic");
+    const musicPrev = document.getElementById("musicPrev");
+    const musicPlayPause = document.getElementById("musicPlayPause");
+    const musicNext = document.getElementById("musicNext");
+    const miniPlayerTitle = document.getElementById("miniPlayerTitle");
+    const musicVolume = document.getElementById("musicVolume");
+    const musicVolumeValue = document.getElementById("musicVolumeValue");
+
+
+    const MECEP_CELL_COUNT = 1;
+    const WOBC_CELL_COUNT = 1;
+    const MAIN_CELL_COUNT = 16;
+    const SECONDARY_CELL_COUNT = 9;
+
+    const MAIN_MAX_TIER = 18;
+    const ACADEMY_MAX_TIER = 5;
+
+    const MAIN_SPAWN_COOLDOWN_MS = 6500;
+    const ACADEMY_SPAWN_COOLDOWN_MS = 4000;
+    const MECEP_CONVERSION_MS = 6000;
+    const WOBC_CONVERSION_MS = 8000;
+    const GAME_WEEK_MS = 500;
+
+    function formatWeeks(remainingMs) {
+      if (remainingMs <= 0) return "AWAITING ORDERS";
+      const weeks = Math.ceil(remainingMs / GAME_WEEK_MS);
+      return `${weeks} ${weeks === 1 ? "week" : "weeks"}`;
+    }
+
+    let mecepProcessing = false;
+    let mecepTimer = null;
+    let wobcProcessing = false;
+    let wobcTimer = null;
+
+    const cooldowns = new WeakMap();
+    let promotionPopupTimer = null;
+    let recyclePopupTimer = null;
+    let mecepErrorTimer = null;
+
+    const mainIcons = [
+      "icons/icon1.webp",
+      "icons/icon2.webp",
+      "icons/icon3.webp",
+      "icons/icon4.webp",
+      "icons/icon5.webp",
+      "icons/icon6.webp",
+      "icons/icon7.webp",
+      "icons/icon8.webp",
+      "icons/icon9.webp",
+      "icons/icon10.webp",
+      "icons/icon11.webp",
+      "icons/icon12.webp",
+      "icons/icon13.webp",
+      "icons/icon14.webp",
+      "icons/icon15.webp",
+      "icons/icon16.webp",
+      "icons/icon17.webp",
+      "icons/icon18.webp"
+    ];
+
+    // 3x3 progression:
+    // plebe -> youngster -> cow -> firstie -> icon9
+    const academyIcons = [
+      "icons/plebe.webp",
+      "icons/youngster.webp",
+      "icons/cow.webp",
+      "icons/firstie.webp",
+      "icons/icon9.webp"
+    ];
+
+    const wobcIcons = [
+      "icons/icon20.webp",
+      "icons/icon21.webp",
+      "icons/icon22.webp"
+    ];
+
+    const WARRANT_MAX_TIER = 3;
+
+    const promotionWarrants = {
+      2: {
+        rank: "Lance Corporal",
+        icon: "icons/icon2.webp",
+        text: "Experienced junior Marine. In a fire team, Lance Corporals take charge of the automatic rifle (M27) and informally lead the Private First Class riflemen (M16) and the Private assistant riflemen."
+      },
+      3: {
+        rank: "Corporal",
+        icon: "icons/icon3.webp",
+        text: "Junior NCO and team leader. Corporals have the most day-to-day leadership with enlisted Marines on the ground. They're sometimes compared to the Army's “E-4 mafia” as they know who has the key, who can fix supply issues, when Gunny checks the area, and who can make something happen. They lead fire teams consisting of four Marines."
+      },
+      4: {
+        rank: "Sergeant",
+        icon: "icons/icon4.webp",
+        text: "Intermediate NCO and squad leader. They translate officers' and senior NCOs' intent into concrete action by Marines. They lead squads, consisting of three fire teams."
+      },
+      5: {
+        rank: "Staff Sergeant",
+        icon: "icons/icon5.webp",
+        text: "First senior NCO rank and platoon sergeant. They assist the 1st lieutenant in leading platoons, which include three squads."
+      },
+      6: {
+        rank: "Gunnery Sergeant",
+        icon: "icons/icon6.webp",
+        text: "A “Gunny” commonly coordinates operations, logistics, training, personnel, and standards across multiple subordinate elements such as a weapons platoon."
+      },
+      7: {
+        rank: "Master Sergeant",
+        icon: "icons/icon7.webp",
+        text: "Second highest enlisted rank. Operations chief who deals with more complicated tactical considerations in lieu of the Gunnery Sergeant. They assist the Captain in leading companies, which consist of three platoons."
+      },
+      8: {
+        rank: "Master Gunnery Sergeant",
+        icon: "icons/icon8.webp",
+        text: "Highest-ranking technical enlisted Marine. A “Master Guns” may influence operations across an entire battalion or regiment, which contain 800 to 4,800 Marines."
+      }
+    };
+
+    const seenPromotionWarrants = new Set();
+
+    const officerPromotions = {
+      9: {
+        rank: "Second Lieutenant",
+        icon: "icons/icon9.webp",
+        text: "Junior officer and entry-level platoon commander. “Butter bars” exercise formal command over platoons while relying heavily on their Staff Sergeant platoon sergeant for practical experience and enlisted leadership. A rifle platoon typically contains three rifle squads plus a headquarters element."
+      },
+      10: {
+        rank: "First Lieutenant",
+        icon: "icons/icon10.webp",
+        text: "Experienced junior officer and platoon commander. First Lieutenants have developed enough experience to exercise greater independence in training, administration, and tactical decision-making. They may continue commanding platoons or serve as company executive officers (XOs), coordinating the company's subordinate platoons on behalf of the Captain."
+      },
+      11: {
+        rank: "Captain",
+        icon: "icons/icon11.webp",
+        text: "Company-grade officer and company commander. Captains integrate several platoons into a single fighting organization and are responsible for the company's training, readiness, discipline, administration, and tactical employment. A rifle company generally contains three rifle platoons, a weapons platoon, and a headquarters element."
+      },
+      12: {
+        rank: "Major",
+        icon: "icons/icon12.webp",
+        text: "Field-grade officer and battalion-level planner. Majors frequently serve as battalion executive officers or operations officers rather than directly commanding a maneuver unit. They turn the Lieutenant Colonel's intent into detailed plans, coordinate the battalion staff, and synchronize several companies during larger operations."
+      },
+      13: {
+        rank: "Lieutenant Colonel",
+        icon: "icons/icon13.webp",
+        text: "Battalion commander. Lieutenant Colonels command organizations containing several companies and are responsible for hundreds of Marines, their equipment, readiness, training, and employment in combat. Rather than personally directing platoons and squads, they establish the battalion's mission and priorities and rely on company commanders and the battalion staff to execute them."
+      },
+      14: {
+        rank: "Colonel",
+        icon: "icons/icon14.webp",
+        text: "Regimental or group-level commander and senior field-grade officer. Colonels coordinate multiple battalions, squadrons, or equivalent units and deal increasingly with operational rather than small-unit tactical problems. They may command a Marine regiment or group containing thousands of Marines or serve in senior staff positions responsible for major portions of a larger force."
+      },
+      15: {
+        rank: "Brigadier General",
+        icon: "icons/icon15.webp",
+        text: "One-star general officer and the first rank whose responsibilities are primarily large-scale operational and institutional leadership. Brigadier Generals may serve as deputy commanders of major formations, command substantial supporting organizations, or oversee major staff functions. Their decisions can affect thousands of Marines across multiple units and specialties."
+      },
+      16: {
+        rank: "Major General",
+        icon: "icons/icon16.webp",
+        text: "Two-star general officer and division-level commander. Major Generals may command Marine divisions, aircraft wings, logistics groups, or comparable organizations containing thousands to tens of thousands of Marines. They integrate entire regiments, groups, and other major subordinate commands into a coherent operational force."
+      },
+      17: {
+        rank: "Lieutenant General",
+        icon: "icons/icon17.webp",
+        text: "Three-star general officer and commander of major Marine forces. Lieutenant Generals commonly command Marine Expeditionary Forces or serve in very senior joint and service headquarters positions. At this level, responsibility extends beyond individual battles to theater-level operations, long-term readiness, joint warfare, logistics, and coordination with the Navy, other services, allies, and national leadership."
+      },
+      18: {
+        rank: "General",
+        icon: "icons/icon18.webp",
+        text: "Four-star general officer and the highest regular commissioned rank. Marine Generals occupy the Corps' most senior positions, such as Commandant of the Marine Corps, Assistant Commandant, or qualifying joint commands. Their responsibility is strategic rather than tactical: determining how major forces are organized, prepared, deployed, sustained, and employed in support of national objectives. At this level, decisions can affect the entire Marine Corps and potentially U.S. military operations worldwide."
+      }
+    };
+
+    const seenOfficerPromotions = new Set();
+
+    const warrantPromotions = {
+      1: {
+        rank: "Chief Warrant Officer 2",
+        icon: "icons/icon20.webp",
+        text: "CWO1s are promoted to CWO2s upon completion of WOBC. CWO2s apply years of enlisted experience alongside officer training to manage specialized equipment, personnel, and operations within their occupational field. Unlike Lieutenants, who are general-purpose junior officers expected to develop as commanders, CWO2s are expected to arrive with substantial technical expertise and advise commanders on how their specialty actually functions at the working level."
+      },
+      2: {
+        rank: "Chief Warrant Officer 3",
+        icon: "icons/icon21.webp",
+        text: "Senior technical officer and organizational specialist. CWO3s exercise broader authority over their occupational field and may supervise other warrant officers, enlisted specialists, and technical programs. Rather than focusing primarily on one shop or section, they help coordinate their specialty across battalion, squadron, regiment, group, or equivalent organizations and advise field-grade officers on technical and operational decisions."
+      },
+      3: {
+        rank: "Chief Warrant Officer 4",
+        icon: "icons/icon22.webp",
+        text: "Senior Chief Warrant Officer and high-level technical authority. CWO4s are among the Marine Corps' most experienced specialists and advise senior commanders and staffs on complex issues within their occupational field. Their influence may extend across regiments, groups, major subordinate commands, or larger organizations, where they establish standards, solve difficult technical problems, mentor junior warrant officers, and translate decades of practical experience into operational planning."
+      }
+    };
+
+    const seenWarrantPromotions = new Set();
+
+
+    const rankAchievements = [
+      {id:"main-1", name:"Private First Class", icon:"icons/icon1.webp"},
+      {id:"main-2", name:"Lance Corporal", icon:"icons/icon2.webp"},
+      {id:"main-3", name:"Corporal", icon:"icons/icon3.webp"},
+      {id:"main-4", name:"Sergeant", icon:"icons/icon4.webp"},
+      {id:"main-5", name:"Staff Sergeant", icon:"icons/icon5.webp"},
+      {id:"main-6", name:"Gunnery Sergeant", icon:"icons/icon6.webp"},
+      {id:"main-7", name:"Master Sergeant", icon:"icons/icon7.webp"},
+      {id:"main-8", name:"Master Gunnery Sergeant", icon:"icons/icon8.webp"},
+      {id:"main-9", name:"Second Lieutenant", icon:"icons/icon9.webp"},
+      {id:"main-10", name:"First Lieutenant", icon:"icons/icon10.webp"},
+      {id:"main-11", name:"Captain", icon:"icons/icon11.webp"},
+      {id:"main-12", name:"Major", icon:"icons/icon12.webp"},
+      {id:"main-13", name:"Lieutenant Colonel", icon:"icons/icon13.webp"},
+      {id:"main-14", name:"Colonel", icon:"icons/icon14.webp"},
+      {id:"main-15", name:"Brigadier General", icon:"icons/icon15.webp"},
+      {id:"main-16", name:"Major General", icon:"icons/icon16.webp"},
+      {id:"main-17", name:"Lieutenant General", icon:"icons/icon17.webp"},
+      {id:"main-18", name:"General", icon:"icons/icon18.webp"},
+      {id:"wobc-1", name:"Chief Warrant Officer 2", icon:"icons/icon20.webp"},
+      {id:"wobc-2", name:"Chief Warrant Officer 3", icon:"icons/icon21.webp"},
+      {id:"wobc-3", name:"Chief Warrant Officer 4", icon:"icons/icon22.webp"},
+      {id:"poolee-backpack", name:"Poolee Backpack", icon:"icons/poolee_backpack.webp", description:"Earned by recruiting three Marines that earn a meritorious promotion out of basic training."},
+      {id:"mameluke-sword", name:"Mameluke Sword", icon:"icons/mameluke_sword.png", description:"Earned by promoting to at least one Corporal and one 2nd Lieutenant."},
+      {id:"good-conduct-medal", name:"Good Conduct Medal", icon:"icons/good_conduct.png", description:"Earned by achieving 3 years (156 weeks) of training without a recruit being recycled."}
+    ];
+    const unlockedAchievements = new Set();
+    let meritoriousBmtPromotions = 0;
+    let cumulativeTrainingWeeks = 0;
+    let cleanTrainingWeeks = 0;
+
+    function updateTrainingCounter() {
+      const counter = document.getElementById("trainingWeeksCounter");
+      if (counter) counter.textContent = `${cumulativeTrainingWeeks} WEEKS`;
+    }
+
+    function addTrainingWeeks(weeks, countsTowardGoodConduct = true) {
+      cumulativeTrainingWeeks += weeks;
+      if (countsTowardGoodConduct) {
+        cleanTrainingWeeks += weeks;
+        if (cleanTrainingWeeks >= 156) {
+          unlockAchievement("good-conduct-medal");
+        }
+      }
+      updateTrainingCounter();
+    }
+
+    function recycleRecruit() {
+      cleanTrainingWeeks = 0;
+    }
+
+    function checkMamelukeAchievement() {
+      if (
+        unlockedAchievements.has("main-3") &&
+        unlockedAchievements.has("main-9")
+      ) {
+        unlockAchievement("mameluke-sword");
+      }
+    }
+
+    function unlockAchievement(id) {
+      const wasUnlocked = unlockedAchievements.has(id);
+      unlockedAchievements.add(id);
+      renderAchievements();
+
+      if (!wasUnlocked && ["poolee-backpack", "mameluke-sword", "good-conduct-medal"].includes(id)) {
+        showAchievementUnlock(id);
+      }
+
+      if (!wasUnlocked && (id === "main-3" || id === "main-9")) {
+        checkMamelukeAchievement();
+      }
+    }
+    function renderAchievements() {
+      achievementsList.innerHTML = rankAchievements.map(a => {
+        const unlocked = unlockedAchievements.has(a.id);
+        const description = a.description ? `<div class="achievement-description">${a.description}</div>` : "";
+        return `<div class="achievement ${unlocked ? "unlocked" : "locked"}"><img src="${a.icon}" alt=""><div><div class="achievement-name">${a.name}</div>${description}<div class="achievement-status">${unlocked ? "Unlocked" : "Locked"}</div></div></div>`;
+      }).join("");
+    }
+    function openAchievements(){ closeMusic(); renderAchievements(); achievementsPanel.classList.add("show"); achievementsBackdrop.classList.add("show"); achievementsPanel.setAttribute("aria-hidden","false"); }
+    function closeAchievements(){ achievementsPanel.classList.remove("show"); achievementsPanel.setAttribute("aria-hidden","true"); if (!musicPanel.classList.contains("show")) achievementsBackdrop.classList.remove("show"); }
+
+    const musicTracks = [
+      { title: "Marines' Hymn (1867)", file: "audio/marine_hymn.ogg" },
+      { title: "Semper Fidelis March (1889)", file: "audio/semper.ogg" },
+      { title: "An American Trilogy (1972)", file: "audio/amertrilogy.ogg" },
+      { title: "Battle Hymn of the Republic (1856)", file: "audio/battlehymn2.ogg" },
+      { title: "I Wish I Was in Dixie (1859)", file: "audio/dixie1.ogg" },
+      { title: "The Liberty Song (1768)", file: "audio/liberty.ogg" },
+      { title: "Taps (1862)", file: "audio/taps.ogg" }
+    ];
+
+    let currentTrackIndex = 0;
+    let autoplayFallbackArmed = false;
+
+    function renderMusicList() {
+      musicList.innerHTML = musicTracks.map((track, index) => {
+        const active = index === currentTrackIndex;
+        return `<button class="music-track ${active ? "active" : ""}" type="button" data-track-index="${index}">
+          <span class="music-track-number">${String(index + 1).padStart(2, "0")}</span>
+          <span class="music-track-copy">
+            <span class="music-track-title">${track.title}</span>
+            <span class="music-track-status">${active ? (backgroundMusic.paused ? "Selected" : "Playing") : "Play"}</span>
+          </span>
+        </button>`;
+      }).join("");
+
+      musicList.querySelectorAll(".music-track").forEach((button) => {
+        button.addEventListener("click", () => {
+          loadTrack(Number(button.dataset.trackIndex), true);
+        });
+      });
+    }
+
+    function updatePlayerUi() {
+      const track = musicTracks[currentTrackIndex];
+      miniPlayerTitle.textContent = track.title;
+      musicPlayPause.textContent = backgroundMusic.paused ? "▶" : "❚❚";
+      musicPlayPause.setAttribute("aria-label", backgroundMusic.paused ? "Play music" : "Pause music");
+      renderMusicList();
+    }
+
+    function playCurrentTrack() {
+      const playAttempt = backgroundMusic.play();
+      if (playAttempt && typeof playAttempt.catch === "function") {
+        playAttempt.catch(() => armAutoplayFallback());
+      }
+    }
+
+    function loadTrack(index, shouldPlay = true) {
+      currentTrackIndex = (index + musicTracks.length) % musicTracks.length;
+      backgroundMusic.src = musicTracks[currentTrackIndex].file;
+      backgroundMusic.load();
+      updatePlayerUi();
+      if (shouldPlay) playCurrentTrack();
+    }
+
+    function nextTrack() {
+      loadTrack(currentTrackIndex + 1, true);
+    }
+
+    function previousTrack() {
+      loadTrack(currentTrackIndex - 1, true);
+    }
+
+    function armAutoplayFallback() {
+      if (autoplayFallbackArmed) return;
+      autoplayFallbackArmed = true;
+
+      const resume = () => {
+        autoplayFallbackArmed = false;
+        playCurrentTrack();
+    updateTrainingCounter();
+        document.removeEventListener("pointerdown", resume);
+        document.removeEventListener("keydown", resume);
+      };
+
+      document.addEventListener("pointerdown", resume, { once: true });
+      document.addEventListener("keydown", resume, { once: true });
+    }
+
+    function openMusic() {
+      closeAchievements();
+      renderMusicList();
+      musicPanel.classList.add("show");
+      achievementsBackdrop.classList.add("show");
+      musicPanel.setAttribute("aria-hidden", "false");
+    }
+
+    function closeMusic() {
+      musicPanel.classList.remove("show");
+      musicPanel.setAttribute("aria-hidden", "true");
+      if (!achievementsPanel.classList.contains("show")) {
+        achievementsBackdrop.classList.remove("show");
+      }
+    }
+
+    let draggedTile = null;
+    let draggedFromCell = null;
+
+    function maxTierFor(tile) {
+      if (tile.dataset.family === "academy") {
+        return ACADEMY_MAX_TIER;
+      }
+
+      if (tile.dataset.family === "wobc") {
+        return WARRANT_MAX_TIER;
+      }
+
+      return MAIN_MAX_TIER;
+    }
+
+    function canDropOnBoard(tile, targetBoard) {
+      const sourceBoard = tile.dataset.board;
+      const family = tile.dataset.family;
+      const tier = Number(tile.dataset.tier);
+
+      // Normal movement stays inside the same field.
+      if (sourceBoard === targetBoard) return true;
+
+      // Main 4x4 -> MECEP:
+      // only normal Marine rank icons tier 3 and above.
+      if (
+        sourceBoard === "main" &&
+        targetBoard === "mecep" &&
+        family === "main" &&
+        tier >= 3
+      ) {
+        return !mecepProcessing;
+      }
+
+      // Main 4x4 -> WOBC:
+      // only normal Marine rank icons tier 4 and above.
+      if (
+        sourceBoard === "main" &&
+        targetBoard === "wobc" &&
+        family === "main" &&
+        tier >= 4
+      ) {
+        return !wobcProcessing;
+      }
+
+      // Completed MECEP conversion -> main 4x4.
+      if (
+        sourceBoard === "mecep" &&
+        targetBoard === "main" &&
+        family === "academy" &&
+        tier === ACADEMY_MAX_TIER &&
+        !mecepProcessing
+      ) {
+        return true;
+      }
+
+      // Completed WOBC conversion -> main 4x4.
+      if (
+        sourceBoard === "wobc" &&
+        targetBoard === "main" &&
+        family === "wobc" &&
+        tier >= 1 &&
+        tier <= WARRANT_MAX_TIER &&
+        !wobcProcessing
+      ) {
+        return true;
+      }
+
+      // Completed academy icon9 from the 3x3 -> main 4x4.
+      if (
+        sourceBoard === "secondary" &&
+        targetBoard === "main" &&
+        family === "academy" &&
+        tier === ACADEMY_MAX_TIER
+      ) {
+        return true;
+      }
+
+      return false;
+    }
+
+    function createBoard(boardElement, cellCount, boardType) {
+      for (let i = 0; i < cellCount; i++) {
+        const cell = document.createElement("div");
+        cell.className = "cell";
+        cell.dataset.index = i;
+        cell.dataset.board = boardType;
+
+        cell.addEventListener("dragover", (event) => {
+          if (!draggedTile) return;
+
+          const isInvalidMecepAttempt =
+            boardType === "mecep" &&
+            draggedTile.dataset.board === "main" &&
+            draggedTile.dataset.family === "main" &&
+            Number(draggedTile.dataset.tier) < 3;
+
+          const isInvalidWobcAttempt =
+            boardType === "wobc" &&
+            draggedTile.dataset.board === "main" &&
+            draggedTile.dataset.family === "main" &&
+            Number(draggedTile.dataset.tier) < 4;
+
+          if (
+            !canDropOnBoard(draggedTile, boardType) &&
+            !isInvalidMecepAttempt &&
+            !isInvalidWobcAttempt
+          ) {
+            return;
+          }
+
+          // Cross-field targets may only accept an empty square.
+          if (
+            draggedTile.dataset.board !== boardType &&
+            cell.querySelector(".tile")
+          ) {
+            return;
+          }
+
+          event.preventDefault();
+
+          if (!isInvalidMecepAttempt && !isInvalidWobcAttempt) {
+            cell.classList.add("drag-over");
+          }
+        });
+
+        cell.addEventListener("dragleave", () => {
+          cell.classList.remove("drag-over");
+        });
+
+        cell.addEventListener("drop", (event) => {
+          if (!draggedTile) return;
+
+          const isInvalidMecepAttempt =
+            boardType === "mecep" &&
+            draggedTile.dataset.board === "main" &&
+            draggedTile.dataset.family === "main" &&
+            Number(draggedTile.dataset.tier) < 3;
+
+          const isInvalidWobcAttempt =
+            boardType === "wobc" &&
+            draggedTile.dataset.board === "main" &&
+            draggedTile.dataset.family === "main" &&
+            Number(draggedTile.dataset.tier) < 4;
+
+          if (isInvalidMecepAttempt) {
+            event.preventDefault();
+            cell.classList.remove("drag-over");
+            showMecepError("Must be at least a Corporal (E-4)!");
+            return;
+          }
+
+          if (isInvalidWobcAttempt) {
+            event.preventDefault();
+            cell.classList.remove("drag-over");
+            showMecepError("Must be at least a Sergeant (E-5)!");
+            return;
+          }
+
+          if (!canDropOnBoard(draggedTile, boardType)) return;
+
+          event.preventDefault();
+          cell.classList.remove("drag-over");
+          handleDrop(cell);
+        });
+
+        boardElement.appendChild(cell);
+      }
+    }
+
+    function createTile(tier, boardType, family, iconSet) {
+      const tile = document.createElement("div");
+      tile.className = "tile";
+      tile.dataset.tier = tier;
+      tile.dataset.board = boardType;
+      tile.dataset.family = family;
+      tile._iconSet = iconSet;
+      tile.draggable = true;
+
+      const image = document.createElement("img");
+      image.src = iconSet[tier - 1];
+      image.alt = family === "academy"
+        ? ["Plebe", "Youngster", "Cow", "Firstie", "Icon 9"][tier - 1]
+        : `Tier ${tier}`;
+
+      tile.appendChild(image);
+
+      tile.addEventListener("dragstart", () => {
+        draggedTile = tile;
+        draggedFromCell = tile.parentElement;
+      });
+
+      tile.addEventListener("dragend", () => {
+        draggedTile = null;
+        draggedFromCell = null;
+
+        document.querySelectorAll(".cell").forEach((cell) => {
+          cell.classList.remove("drag-over");
+        });
+      });
+
+      return tile;
+    }
+
+    function setTileTier(tile, tier) {
+      tile.dataset.tier = tier;
+
+      const image = tile.querySelector("img");
+      const iconSet = tile._iconSet;
+
+      image.src = iconSet[tier - 1];
+
+      if (tile.dataset.family === "academy") {
+        image.alt = ["Plebe", "Youngster", "Cow", "Firstie", "Icon 9"][tier - 1];
+      } else if (tile.dataset.family === "wobc") {
+        image.alt = ["Icon 20", "Icon 21", "Icon 22"][tier - 1];
+      } else {
+        image.alt = `Tier ${tier}`;
+      }
+    }
+
+    function handleDrop(targetCell) {
+      if (!draggedTile || !draggedFromCell) return;
+      if (targetCell === draggedFromCell) return;
+
+      const sourceBoard = draggedTile.dataset.board;
+      const targetBoard = targetCell.dataset.board;
+
+      if (!canDropOnBoard(draggedTile, targetBoard)) return;
+
+      const targetTile = targetCell.querySelector(".tile");
+
+      // Cross-board moves always require an empty destination.
+      if (sourceBoard !== targetBoard) {
+        if (targetTile) return;
+
+        targetCell.appendChild(draggedTile);
+        draggedTile.dataset.board = targetBoard;
+
+        // icon9 entering the 4x4 joins the main merge chain.
+        if (
+          targetBoard === "main" &&
+          draggedTile.dataset.family === "academy" &&
+          Number(draggedTile.dataset.tier) === ACADEMY_MAX_TIER
+        ) {
+          draggedTile.dataset.family = "main";
+          draggedTile.dataset.tier = 9;
+          draggedTile._iconSet = mainIcons;
+          const transferredImage = draggedTile.querySelector("img");
+          transferredImage.src = mainIcons[8];
+          transferredImage.alt = "Tier 9";
+          showOfficerPromotion(9);
+          unlockAchievement("main-9");
+        }
+
+        // Dropping an eligible Marine rank into MECEP begins the 20-second conversion.
+        if (targetBoard === "mecep") {
+          startMecepConversion(draggedTile);
+        }
+
+        if (targetBoard === "wobc") {
+          startWobcConversion(draggedTile);
+        }
+
+        return;
+      }
+
+      // Empty cell on the same board: move normally.
+      if (!targetTile) {
+        targetCell.appendChild(draggedTile);
+        return;
+      }
+
+      // Different icon families can never merge.
+      if (draggedTile.dataset.family !== targetTile.dataset.family) return;
+
+      const draggedTier = Number(draggedTile.dataset.tier);
+      const targetTier = Number(targetTile.dataset.tier);
+      const maxTier = maxTierFor(targetTile);
+
+      // Matching icons merge into the next tier.
+      if (draggedTier === targetTier && targetTier < maxTier) {
+        const newTier = targetTier + 1;
+        setTileTier(targetTile, newTier);
+        draggedTile.remove();
+
+        if (targetTile.dataset.family === "main") {
+          if (newTier >= 2 && newTier <= 8) {
+            showPromotionWarrant(newTier);
+            unlockAchievement(`main-${newTier}`);
+          } else if (newTier >= 9 && newTier <= 18) {
+            showOfficerPromotion(newTier);
+            unlockAchievement(`main-${newTier}`);
+          }
+        } else if (targetTile.dataset.family === "wobc") {
+          showWarrantPromotion(newTier);
+          unlockAchievement(`wobc-${newTier}`);
+        }
+      }
+    }
+
+    function startWobcConversion(tile) {
+      if (wobcProcessing) return;
+
+      wobcProcessing = true;
+      tile.draggable = false;
+      wobcButton.disabled = true;
+
+      const endTime = performance.now() + WOBC_CONVERSION_MS;
+
+      function update(now) {
+        const remaining = Math.max(0, endTime - now);
+        const progress = 1 - (remaining / WOBC_CONVERSION_MS);
+
+        wobcCooldownBar.style.width = `${progress * 100}%`;
+        wobcCountdown.textContent =
+          remaining > 0 ? formatWeeks(remaining) : "Complete";
+
+        if (remaining > 0) {
+          wobcTimer = requestAnimationFrame(update);
+          return;
+        }
+
+        // Convert in-place to icon20. Player must manually move it
+        // back into an empty 4x4 square.
+        tile.dataset.family = "wobc";
+        tile.dataset.tier = 1;
+        tile._iconSet = wobcIcons;
+
+        const image = tile.querySelector("img");
+        image.src = wobcIcons[0];
+        image.alt = "Icon 20";
+
+        showWarrantPromotion(1);
+        unlockAchievement("wobc-1");
+        addTrainingWeeks(16, true);
+
+        tile.draggable = true;
+        wobcProcessing = false;
+        wobcButton.disabled = false;
+        wobcCooldownBar.style.width = "0%";
+        wobcCountdown.textContent = "AWAITING ORDERS";
+      }
+
+      wobcCooldownBar.style.width = "0%";
+      wobcTimer = requestAnimationFrame(update);
+    }
+
+    function startMecepConversion(tile) {
+      if (mecepProcessing) return;
+
+      mecepProcessing = true;
+      tile.draggable = false;
+      mecepButton.disabled = true;
+
+      const startTime = performance.now();
+      const endTime = startTime + MECEP_CONVERSION_MS;
+
+      function update(now) {
+        const remaining = Math.max(0, endTime - now);
+        const progress = 1 - (remaining / MECEP_CONVERSION_MS);
+
+        mecepCooldownBar.style.width = `${progress * 100}%`;
+        mecepCountdown.textContent =
+          remaining > 0 ? formatWeeks(remaining) : "Complete";
+
+        if (remaining > 0) {
+          mecepTimer = requestAnimationFrame(update);
+          return;
+        }
+
+        // Convert the tile into icon9, but leave it in the MECEP slot.
+        // The player must manually drag it into an empty 4x4 square.
+        tile.dataset.family = "academy";
+        tile.dataset.tier = ACADEMY_MAX_TIER;
+        tile._iconSet = academyIcons;
+
+        const image = tile.querySelector("img");
+        image.src = academyIcons[ACADEMY_MAX_TIER - 1];
+        image.alt = "Icon 9";
+        addTrainingWeeks(12, true);
+
+        tile.draggable = true;
+        mecepProcessing = false;
+        mecepButton.disabled = false;
+        mecepCooldownBar.style.width = "0%";
+        mecepCountdown.textContent = "AWAITING ORDERS";
+      }
+
+      mecepCooldownBar.style.width = "0%";
+      mecepTimer = requestAnimationFrame(update);
+    }
+
+    function showMecepError(message = "Must be at least a Corporal (E-4)!") {
+      mecepError.textContent = message;
+      mecepError.classList.add("show");
+      clearTimeout(mecepErrorTimer);
+
+      mecepErrorTimer = setTimeout(() => {
+        mecepError.classList.remove("show");
+      }, 1800);
+    }
+
+    function showPromotionWarrant(tier) {
+      const data = promotionWarrants[tier];
+
+      // Only show enlisted promotion warrants for icon2 through icon8,
+      // and only the first time each rank is reached in this session.
+      if (!data || seenPromotionWarrants.has(tier)) return;
+
+      seenPromotionWarrants.add(tier);
+
+      promotionWarrantIcon.src = data.icon;
+      promotionWarrantIcon.alt = data.rank;
+      promotionWarrantRank.textContent = data.rank;
+      promotionWarrantText.textContent = data.text;
+
+      promotionWarrant.classList.add("show");
+      promotionWarrant.setAttribute("aria-hidden", "false");
+    }
+
+    function hidePromotionWarrant() {
+      promotionWarrant.classList.remove("show");
+      promotionWarrant.setAttribute("aria-hidden", "true");
+    }
+
+    function showOfficerPromotion(tier) {
+      const data = officerPromotions[tier];
+      if (!data || seenOfficerPromotions.has(tier)) return;
+
+      seenOfficerPromotions.add(tier);
+
+      officerPromotionIcon.src = data.icon;
+      officerPromotionIcon.alt = data.rank;
+      officerPromotionRank.textContent = data.rank;
+      officerPromotionText.textContent = data.text;
+
+      officerPromotion.classList.add("show");
+      officerPromotion.setAttribute("aria-hidden", "false");
+    }
+
+    function hideOfficerPromotion() {
+      officerPromotion.classList.remove("show");
+      officerPromotion.setAttribute("aria-hidden", "true");
+    }
+
+    function showWarrantPromotion(tier) {
+      const data = warrantPromotions[tier];
+      if (!data || seenWarrantPromotions.has(tier)) return;
+
+      seenWarrantPromotions.add(tier);
+
+      warrantPromotionIcon.src = data.icon;
+      warrantPromotionIcon.alt = data.rank;
+      warrantPromotionRank.textContent = data.rank;
+      warrantPromotionText.textContent = data.text;
+
+      warrantPromotion.classList.add("show");
+      warrantPromotion.setAttribute("aria-hidden", "false");
+    }
+
+    function hideWarrantPromotion() {
+      warrantPromotion.classList.remove("show");
+      warrantPromotion.setAttribute("aria-hidden", "true");
+    }
+
+    function showAchievementUnlock(id) {
+      const data = rankAchievements.find((achievement) => achievement.id === id);
+      if (!data) return;
+
+      achievementUnlockIcon.src = data.icon;
+      achievementUnlockIcon.alt = data.name;
+      achievementUnlockName.textContent = data.name;
+      achievementUnlockText.textContent = data.description || "";
+
+      achievementUnlockPopup.classList.add("show");
+      achievementUnlockPopup.setAttribute("aria-hidden", "false");
+    }
+
+    function hideAchievementUnlock() {
+      achievementUnlockPopup.classList.remove("show");
+      achievementUnlockPopup.setAttribute("aria-hidden", "true");
+    }
+
+    function showRecyclePopup() {
+      recyclePopup.classList.add("show");
+
+      clearTimeout(recyclePopupTimer);
+      recyclePopupTimer = setTimeout(() => {
+        recyclePopup.classList.remove("show");
+      }, 1800);
+    }
+
+    function showPromotionPopup() {
+      promotionPopup.classList.add("show");
+
+      clearTimeout(promotionPopupTimer);
+      promotionPopupTimer = setTimeout(() => {
+        promotionPopup.classList.remove("show");
+      }, 1800);
+    }
+
+    function startCooldown(button, durationMs, countdownElement = null, trainingWeeks = 0, countsTowardGoodConduct = true) {
+      const control =
+        button.closest(".spawn-control") ||
+        button.closest(".academy-spawn-control");
+
+      const bar = control.querySelector(".cooldown-bar");
+      countdownElement = countdownElement || control.querySelector(".countdown-text");
+
+      button.disabled = true;
+
+      const endTime = performance.now() + durationMs;
+      const state = { endTime, animationFrame: null };
+      cooldowns.set(button, state);
+
+      function update(now) {
+        const remaining = Math.max(0, endTime - now);
+        const progress = 1 - remaining / durationMs;
+
+        bar.style.width = `${progress * 100}%`;
+
+        if (countdownElement) {
+          countdownElement.textContent = formatWeeks(remaining);
+        }
+
+        if (remaining > 0) {
+          state.animationFrame = requestAnimationFrame(update);
+        } else {
+          if (trainingWeeks > 0) {
+            addTrainingWeeks(trainingWeeks, countsTowardGoodConduct);
+          }
+          bar.style.width = "0%";
+          button.disabled = false;
+          cooldowns.delete(button);
+        }
+      }
+
+      bar.style.width = "0%";
+      state.animationFrame = requestAnimationFrame(update);
+    }
+
+    function spawnMainTile(button) {
+      if (button.disabled || cooldowns.has(button)) return;
+
+      const emptyCells = [...mainBoard.querySelectorAll(".cell")]
+        .filter((cell) => !cell.querySelector(".tile"));
+
+      if (emptyCells.length === 0) return;
+
+      // Independent 10% BMT failure roll.
+      // If this happens, no recruit is added to the board.
+      const failedBmt = Math.floor(Math.random() * 10) === 0;
+
+      if (failedBmt) {
+        showRecyclePopup();
+        recycleRecruit();
+        startCooldown(button, MAIN_SPAWN_COOLDOWN_MS, null, 13, false);
+        return;
+      }
+
+      const randomCell =
+        emptyCells[Math.floor(Math.random() * emptyCells.length)];
+
+      // Separate, independent 10% Company Honor Graduate roll.
+      // Success here spawns icon2 instead of icon1.
+      const honorGraduate = Math.floor(Math.random() * 10) === 0;
+      const tier = honorGraduate ? 2 : 1;
+
+      randomCell.appendChild(
+        createTile(tier, "main", "main", mainIcons)
+      );
+
+      unlockAchievement(`main-${tier}`);
+
+      if (honorGraduate) {
+        meritoriousBmtPromotions += 1;
+        if (meritoriousBmtPromotions >= 3) {
+          unlockAchievement("poolee-backpack");
+        }
+        showPromotionPopup();
+        showPromotionWarrant(2);
+      }
+
+      startCooldown(button, MAIN_SPAWN_COOLDOWN_MS, null, 13, true);
+    }
+
+    function spawnPlebe() {
+      if (
+        academySpawnButton.disabled ||
+        cooldowns.has(academySpawnButton)
+      ) {
+        return;
+      }
+
+      const emptyCells = [...secondaryBoard.querySelectorAll(".cell")]
+        .filter((cell) => !cell.querySelector(".tile"));
+
+      if (emptyCells.length === 0) return;
+
+      const randomCell =
+        emptyCells[Math.floor(Math.random() * emptyCells.length)];
+
+      randomCell.appendChild(
+        createTile(1, "secondary", "academy", academyIcons)
+      );
+
+      startCooldown(
+        academySpawnButton,
+        ACADEMY_SPAWN_COOLDOWN_MS,
+        academyCountdown,
+        8,
+        true
+      );
+    }
+
+    createBoard(mecepBoard, MECEP_CELL_COUNT, "mecep");
+    createBoard(wobcBoard, WOBC_CELL_COUNT, "wobc");
+    createBoard(mainBoard, MAIN_CELL_COUNT, "main");
+    createBoard(secondaryBoard, SECONDARY_CELL_COUNT, "secondary");
+
+    mainSpawnButtons.forEach((button) => {
+      button.addEventListener("click", () => spawnMainTile(button));
+    });
+
+
+    achievementsButton.addEventListener("click", openAchievements);
+    achievementsClose.addEventListener("click", closeAchievements);
+    musicButton.addEventListener("click", openMusic);
+    musicClose.addEventListener("click", closeMusic);
+    achievementsBackdrop.addEventListener("click", () => {
+      closeAchievements();
+      closeMusic();
+    });
+
+    musicPrev.addEventListener("click", previousTrack);
+    musicNext.addEventListener("click", nextTrack);
+    musicPlayPause.addEventListener("click", () => {
+      if (backgroundMusic.paused) {
+        playCurrentTrack();
+      } else {
+        backgroundMusic.pause();
+      }
+    });
+
+    musicVolume.addEventListener("input", () => {
+      backgroundMusic.volume = Number(musicVolume.value);
+      musicVolumeValue.textContent = `${Math.round(backgroundMusic.volume * 100)}%`;
+    });
+
+    backgroundMusic.addEventListener("play", updatePlayerUi);
+    backgroundMusic.addEventListener("pause", updatePlayerUi);
+    backgroundMusic.addEventListener("ended", nextTrack);
+    backgroundMusic.addEventListener("error", nextTrack);
+    document.addEventListener("keydown", (event) => { if (event.key === "Escape") { closeAchievements(); closeMusic(); } });
+    renderAchievements();
+
+    promotionWarrantClose.addEventListener("click", hidePromotionWarrant);
+    officerPromotionClose.addEventListener("click", hideOfficerPromotion);
+    warrantPromotionClose.addEventListener("click", hideWarrantPromotion);
+    achievementUnlockClose.addEventListener("click", hideAchievementUnlock);
+
+    academySpawnButton.addEventListener("click", spawnPlebe);
+
+    wobcButton.addEventListener("click", () => {
+      if (wobcProcessing) return;
+      const slotTile = wobcBoard.querySelector(".tile");
+      wobcCountdown.textContent = slotTile ? "Conversion complete" : "Drag icon4+ here";
+      setTimeout(() => {
+        if (!wobcProcessing) wobcCountdown.textContent = "AWAITING ORDERS";
+      }, 1400);
+    });
+
+    mecepButton.addEventListener("click", () => {
+      if (mecepProcessing) return;
+      const slotTile = mecepBoard.querySelector(".tile");
+      mecepCountdown.textContent = slotTile ? "Conversion complete" : "Drag icon3+ here";
+      setTimeout(() => {
+        if (!mecepProcessing) mecepCountdown.textContent = "AWAITING ORDERS";
+      }, 1400);
+    });
+  
+    backgroundMusic.volume = Number(musicVolume.value);
+    musicVolumeValue.textContent = `${Math.round(backgroundMusic.volume * 100)}%`;
+    loadTrack(0, false);
+    renderMusicList();
+
+    // Browsers may block audible autoplay until the player's first interaction.
+    // Attempt immediately; if blocked, the first click/tap/key press starts the selected track.
+    playCurrentTrack();
+
+  </script>
+</body>
+</html>
