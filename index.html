@@ -115,6 +115,10 @@
       max-height: 80%;
       pointer-events: none;
       user-select: none;
+    
+      user-select:none;
+      -webkit-user-drag:none;
+      -webkit-touch-callout:none;
     }
 
     .cell.drag-over {
@@ -557,6 +561,16 @@
     }
     .training-weeks-readout strong { color:#222; font-weight:800; }
 
+  
+    .tile.touch-dragging {
+      opacity:.82;
+      transform:scale(1.06);
+      z-index:100;
+    }
+    .cell.touch-drag-over {
+      outline:2px solid rgba(0,0,0,.18);
+      outline-offset:-2px;
+    }
   </style>
 </head>
 
@@ -1169,6 +1183,14 @@
     let draggedTile = null;
     let draggedFromCell = null;
 
+    let touchDragTile = null;
+    let touchDragFromCell = null;
+    let touchDragPointerId = null;
+    let touchDragActive = false;
+    let touchDragStartX = 0;
+    let touchDragStartY = 0;
+    const TOUCH_DRAG_THRESHOLD = 8;
+
     function maxTierFor(tile) {
       if (tile.dataset.family === "academy") {
         return ACADEMY_MAX_TIER;
@@ -1336,6 +1358,94 @@
       }
     }
 
+
+    function clearTouchDragHighlights() {
+      document.querySelectorAll(".cell.touch-drag-over").forEach((cell) => {
+        cell.classList.remove("touch-drag-over");
+      });
+    }
+
+    function getCellUnderPointer(clientX, clientY) {
+      const element = document.elementFromPoint(clientX, clientY);
+      return element ? element.closest(".cell") : null;
+    }
+
+    function startTouchDrag(event, tile) {
+      if (event.pointerType === "mouse") return;
+      if (touchDragTile) return;
+
+      touchDragTile = tile;
+      touchDragFromCell = tile.parentElement;
+      touchDragPointerId = event.pointerId;
+      touchDragActive = false;
+      touchDragStartX = event.clientX;
+      touchDragStartY = event.clientY;
+
+      try {
+        tile.setPointerCapture(event.pointerId);
+      } catch (_) {}
+    }
+
+    function moveTouchDrag(event) {
+      if (!touchDragTile || event.pointerId !== touchDragPointerId) return;
+
+      const dx = event.clientX - touchDragStartX;
+      const dy = event.clientY - touchDragStartY;
+
+      if (!touchDragActive && Math.hypot(dx, dy) >= TOUCH_DRAG_THRESHOLD) {
+        touchDragActive = true;
+        draggedTile = touchDragTile;
+        draggedFromCell = touchDragFromCell;
+        touchDragTile.classList.add("touch-dragging");
+      }
+
+      if (!touchDragActive) return;
+
+      event.preventDefault();
+
+      clearTouchDragHighlights();
+      const cell = getCellUnderPointer(event.clientX, event.clientY);
+      if (cell) cell.classList.add("touch-drag-over");
+    }
+
+    function finishTouchDrag(event) {
+      if (!touchDragTile || event.pointerId !== touchDragPointerId) return;
+
+      if (touchDragActive) {
+        event.preventDefault();
+        const targetCell = getCellUnderPointer(event.clientX, event.clientY);
+        if (targetCell) handleDrop(targetCell);
+      }
+
+      touchDragTile.classList.remove("touch-dragging");
+      clearTouchDragHighlights();
+
+      try {
+        touchDragTile.releasePointerCapture(event.pointerId);
+      } catch (_) {}
+
+      touchDragTile = null;
+      touchDragFromCell = null;
+      touchDragPointerId = null;
+      touchDragActive = false;
+      draggedTile = null;
+      draggedFromCell = null;
+    }
+
+    function cancelTouchDrag(event) {
+      if (!touchDragTile || event.pointerId !== touchDragPointerId) return;
+
+      touchDragTile.classList.remove("touch-dragging");
+      clearTouchDragHighlights();
+
+      touchDragTile = null;
+      touchDragFromCell = null;
+      touchDragPointerId = null;
+      touchDragActive = false;
+      draggedTile = null;
+      draggedFromCell = null;
+    }
+
     function createTile(tier, boardType, family, iconSet) {
       const tile = document.createElement("div");
       tile.className = "tile";
@@ -1366,6 +1476,11 @@
           cell.classList.remove("drag-over");
         });
       });
+
+      tile.addEventListener("pointerdown", (event) => startTouchDrag(event, tile));
+      tile.addEventListener("pointermove", moveTouchDrag, { passive:false });
+      tile.addEventListener("pointerup", finishTouchDrag, { passive:false });
+      tile.addEventListener("pointercancel", cancelTouchDrag);
 
       return tile;
     }

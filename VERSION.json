@@ -1,14 +1,11 @@
 {
-  "version": "0.13-training-achievements",
-  "base": "0.12-drum-bugle-corps",
+  "version": "0.14-touch-controls",
+  "base": "0.13-training-achievements",
   "changes": [
-    "Added Mameluke Sword achievement using supplied artwork.",
-    "Mameluke Sword unlocks after the player has achieved both Corporal and Second Lieutenant.",
-    "Added Good Conduct Medal achievement using supplied artwork.",
-    "Good Conduct Medal unlocks after 156 consecutive training weeks without a BMT recruit being recycled.",
-    "Added a visible cumulative training weeks counter beneath the MARINE MERGE heading.",
-    "Successful BMT contributes 13 weeks; Plebe Summer 8; MECEP/OCS 12; WOBC 16.",
-    "A recycled BMT recruit resets the clean-training streak but its 13 training weeks still count toward the cumulative total.",
-    "Special achievements use the same bottom-right achievement-unlock popup format."
+    "Added touch and stylus drag controls using Pointer Events.",
+    "Touch drops reuse the existing handleDrop game logic.",
+    "Desktop mouse drag-and-drop remains unchanged.",
+    "Normal page scrolling remains available until a deliberate tile drag begins.",
+    "Added subtle drag/destination highlighting only; no layout or mechanics changed."
   ]
 }
