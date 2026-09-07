@@ -567,6 +567,10 @@
       transform:scale(1.06);
       z-index:100;
     }
+    .tile.tap-selected {
+      outline:3px solid currentColor;
+      outline-offset:2px;
+    }
     .cell.touch-drag-over {
       outline:2px solid rgba(0,0,0,.18);
       outline-offset:-2px;
@@ -1191,6 +1195,10 @@
     let touchDragStartY = 0;
     const TOUCH_DRAG_THRESHOLD = 8;
 
+    let selectedTile = null;
+    let selectedFromCell = null;
+    let suppressTileClickUntil = 0;
+
     function maxTierFor(tile) {
       if (tile.dataset.family === "academy") {
         return ACADEMY_MAX_TIER;
@@ -1351,13 +1359,81 @@
 
           event.preventDefault();
           cell.classList.remove("drag-over");
-          handleDrop(cell);
+          attemptDrop(cell);
+        });
+
+        cell.addEventListener("click", () => {
+          if (!selectedTile || !selectedFromCell) return;
+          attemptSelectedMove(cell);
         });
 
         boardElement.appendChild(cell);
       }
     }
 
+
+
+    function clearTileSelection() {
+      if (selectedTile) {
+        selectedTile.classList.remove("tap-selected");
+      }
+      selectedTile = null;
+      selectedFromCell = null;
+    }
+
+    function selectTileForMove(tile) {
+      clearTileSelection();
+      selectedTile = tile;
+      selectedFromCell = tile.parentElement;
+      tile.classList.add("tap-selected");
+    }
+
+    function attemptDrop(targetCell) {
+      if (!draggedTile || !draggedFromCell || !targetCell) return;
+
+      const boardType = targetCell.dataset.board;
+
+      const isInvalidMecepAttempt =
+        boardType === "mecep" &&
+        draggedTile.dataset.board === "main" &&
+        draggedTile.dataset.family === "main" &&
+        Number(draggedTile.dataset.tier) < 3;
+
+      const isInvalidWobcAttempt =
+        boardType === "wobc" &&
+        draggedTile.dataset.board === "main" &&
+        draggedTile.dataset.family === "main" &&
+        Number(draggedTile.dataset.tier) < 4;
+
+      if (isInvalidMecepAttempt) {
+        showMecepError("Must be at least a Corporal (E-4)!");
+        return;
+      }
+
+      if (isInvalidWobcAttempt) {
+        showMecepError("Must be at least a Sergeant (E-5)!");
+        return;
+      }
+
+      if (!canDropOnBoard(draggedTile, boardType)) return;
+      handleDrop(targetCell);
+    }
+
+    function attemptSelectedMove(targetCell) {
+      if (!selectedTile || !selectedFromCell) return;
+
+      const movingTile = selectedTile;
+      const movingFromCell = selectedFromCell;
+
+      draggedTile = movingTile;
+      draggedFromCell = movingFromCell;
+
+      attemptDrop(targetCell);
+
+      draggedTile = null;
+      draggedFromCell = null;
+      clearTileSelection();
+    }
 
     function clearTouchDragHighlights() {
       document.querySelectorAll(".cell.touch-drag-over").forEach((cell) => {
@@ -1413,8 +1489,10 @@
 
       if (touchDragActive) {
         event.preventDefault();
+        suppressTileClickUntil = Date.now() + 350;
+        clearTileSelection();
         const targetCell = getCellUnderPointer(event.clientX, event.clientY);
-        if (targetCell) handleDrop(targetCell);
+        if (targetCell) attemptDrop(targetCell);
       }
 
       touchDragTile.classList.remove("touch-dragging");
@@ -1464,6 +1542,7 @@
       tile.appendChild(image);
 
       tile.addEventListener("dragstart", () => {
+        clearTileSelection();
         draggedTile = tile;
         draggedFromCell = tile.parentElement;
       });
@@ -1481,6 +1560,26 @@
       tile.addEventListener("pointermove", moveTouchDrag, { passive:false });
       tile.addEventListener("pointerup", finishTouchDrag, { passive:false });
       tile.addEventListener("pointercancel", cancelTouchDrag);
+
+      tile.addEventListener("click", (event) => {
+        event.stopPropagation();
+
+        if (Date.now() < suppressTileClickUntil) return;
+
+        // If another tile is already selected, this tile's cell is the destination.
+        if (selectedTile && selectedTile !== tile) {
+          attemptSelectedMove(tile.parentElement);
+          return;
+        }
+
+        // Clicking/tapping the selected tile again cancels selection.
+        if (selectedTile === tile) {
+          clearTileSelection();
+          return;
+        }
+
+        selectTileForMove(tile);
+      });
 
       return tile;
     }
